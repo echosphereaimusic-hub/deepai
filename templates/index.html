@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Ai - Gemini & ChatGPT Streaming</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .app-container { display: flex; max-width: 1200px; margin: 0 auto; gap: 20px; height: calc(100vh - 40px); }
+        .sidebar { background: white; border-radius: 12px; padding: 20px; width: 280px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); overflow-y: auto; }
+        .auth-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #eee; }
+        .auth-button { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; }
+        .google-btn { background: #1f2937; color: white; }
+        .google-btn:hover { background: #111827; }
+        .apple-btn { background: #000; color: white; }
+        .apple-btn:hover { background: #333; }
+        .info-section { margin-bottom: 20px; }
+        .info-section h3 { color: #667eea; margin-bottom: 10px; font-size: 14px; }
+        .info-section p { font-size: 13px; color: #666; line-height: 1.6; margin-bottom: 8px; }
+        .history-section h3 { color: #667eea; margin-bottom: 10px; font-size: 14px; }
+        .history-item { padding: 8px; background: #f0f0f0; border-radius: 6px; margin: 5px 0; cursor: pointer; font-size: 13px; color: #333; border-left: 3px solid #667eea; }
+        .history-item:hover { background: #e0e0e0; }
+        .clear-history { width: 100%; padding: 8px; background: #ff6b6b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; }
+        .main-container { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; }
+        .header { padding: 20px; border-bottom: 2px solid #eee; }
+        h1 { color: #333; font-size: 28px; }
+        #chat-output { flex: 1; overflow-y: auto; padding: 20px; }
+        .message { margin-bottom: 15px; padding: 12px; border-radius: 8px; max-width: 80%; }
+        .user { background: #e6f0ff; text-align: right; margin-left: auto; }
+        .ai { background: #fff0e6; text-align: left; }
+        .model-tag { font-size: 12px; color: #666; margin-top: 5px; display: block; }
+        .input-section { padding: 20px; border-top: 2px solid #eee; display: flex; gap: 10px; }
+        #prompt-input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        #model-select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; background: white; cursor: pointer; font-weight: bold; }
+        #send-button { padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        #send-button:hover { background: #764ba2; }
+        #send-button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Auth Section -->
+            <div class="auth-section">
+                <button class="auth-button google-btn" onclick="signInGoogle()">
+                    <span>🔵</span> Sign in with Google
+                </button>
+                <button class="auth-button apple-btn" onclick="signInApple()">
+                    <span>🍎</span> Sign in with Apple
+                </button>
+                <div id="user-info" style="text-align: center; margin-top: 10px; font-size: 13px; color: #666; display: none;">
+                    Signed in as: <strong id="user-name"></strong>
+                </div>
+            </div>
+
+            <!-- Gemini Info Section -->
+            <div class="info-section">
+                <h3>🤖 About Gemini</h3>
+                <p><strong>Formerly Google Bard</strong> - Google's powerful conversational AI.</p>
+                <p><strong>Multimodal:</strong> Understands text, images, and code.</p>
+                <p><strong>Grounded in Search:</strong> Access to real-time information via Google Search.</p>
+            </div>
+
+            <!-- Capabilities Section -->
+            <div class="info-section">
+                <h3>✨ Capabilities</h3>
+                <p>📝 Writing & creativity</p>
+                <p>🔍 Research & learning</p>
+                <p>🖼️ Image generation & editing</p>
+                <p>💻 Code debugging</p>
+                <p>📊 Data analysis</p>
+                <p>📅 Planning & organization</p>
+            </div>
+
+            <!-- History Section -->
+            <div class="history-section">
+                <h3>📜 Chat History</h3>
+                <div id="history-list"></div>
+                <button class="clear-history" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-container">
+            <div class="header">
+                <h1>✨ Deep Ai</h1>
+            </div>
+
+            <div id="chat-output">
+                <div class="message ai">
+                    <p>Hello! Select an AI model (Gemini, ChatGPT, or Both) and ask a question to see real-time streaming responses.</p>
+                    <span class="model-tag">Deepai Assistant</span>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <input type="text" id="prompt-input" placeholder="Ask anything..." required>
+                <select id="model-select">
+                    <option value="gemini">🤖 Gemini</option>
+                    <option value="chatgpt">💬 ChatGPT</option>
+                    <option value="both">⚡ Both</option>
+                </select>
+                <button type="submit" id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize chat history from localStorage
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChatHistory();
+            if (currentUser) {
+                displayUserInfo();
+            }
+            
+            // Form submission
+            document.getElementById('prompt-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    submitChat();
+                }
+            });
+            document.getElementById('send-button').addEventListener('click', submitChat);
+        });
+
+        // Sign in functions
+        function signInGoogle() {
+            const userName = prompt('Enter your name (Google):');
+            if (userName) {
+                currentUser = { name: userName, provider: 'Google' };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                displayUserInfo();
+                alert('Signed in with Google! Chat history will be saved.');
+            }
+        }
+
+        function signInApple() {
+            const userName = prompt('Enter your name (Apple):');
+            if (userName) {
+                currentUser = { name: userName, provider: 'Apple' };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                displayUserInfo();
+                alert('Signed in with Apple! Chat history will be saved.');
+            }
+        }
+
+        function displayUserInfo() {
+            if (currentUser) {
+                document.getElementById('user-info').style.display = 'block';
+                document.getElementById('user-name').textContent = currentUser.name;
+            }
+        }
+
+        // Chat submission
+        function submitChat() {
+            const promptInput = document.getElementById('prompt-input');
+            const modelSelect = document.getElementById('model-select');
+            const chatOutput = document.getElementById('chat-output');
+            const sendButton = document.getElementById('send-button');
+
+            const userPrompt = promptInput.value;
+            const modelChoice = modelSelect.value;
+            const modelName = modelChoice === 'gemini' ? 'Gemini' : modelChoice === 'chatgpt' ? 'ChatGPT' : 'Both Models';
+
+            // 1. Display user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.innerHTML = `<p>${userPrompt}</p><span class="model-tag">You (to ${modelName})</span>`;
+            chatOutput.appendChild(userMsg);
+
+            // 2. Prepare AI response container
+            const aiMsg = document.createElement('div');
+            aiMsg.className = 'message ai';
+            const aiTextElement = document.createElement('p');
+            aiMsg.appendChild(aiTextElement);
+            const aiTagElement = document.createElement('span');
+            aiTagElement.className = 'model-tag';
+            aiTagElement.innerText = `Response from ${modelName}...`;
+            aiMsg.appendChild(aiTagElement);
+            chatOutput.appendChild(aiMsg);
+            
+            chatOutput.scrollTop = chatOutput.scrollHeight;
+
+            // Save to history
+            if (currentUser) {
+                chatHistory.push({
+                    prompt: userPrompt,
+                    model: modelName,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                loadChatHistory();
+            }
+
+            // Disable input/button during request
+            promptInput.value = '';
+            promptInput.disabled = true;
+            sendButton.disabled = true;
+
+            // --- STREAMING LOGIC (Fetch POST) ---
+            (async () => {
+                try {
+                    console.log('Sending POST to /api/stream with prompt and model:', modelChoice);
+                    
+                    const response = await fetch('/api/stream', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: userPrompt, model: modelChoice })
+                    });
+
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    if (!response.body) {
+                        throw new Error('No response body');
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    aiTextElement.innerHTML = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataString = line.substring(6);
+                                if (dataString === '[DONE]') {
+                                    reader.releaseLock();
+                                    return;
+                                }
+                                try {
+                                    const data = JSON.parse(dataString);
+                                    if (data.error) {
+                                        aiTextElement.innerHTML = `**Error:** ${data.error}`;
+                                        aiTagElement.innerText = 'System Error';
+                                        break;
+                                    }
+                                    aiTextElement.innerHTML += data.text;
+                                    aiTagElement.innerText = `Response from ${data.model}`;
+                                } catch (e) {
+                                    console.error('Parse error:', e);
+                                }
+                            }
+                        }
+                        chatOutput.scrollTop = chatOutput.scrollHeight;
+                    }
+
+                } catch (error) {
+                    console.error('Streaming error:', error);
+                    aiTextElement.innerHTML = `A network or fetch error occurred: ${error.message}`;
+                    aiTagElement.innerText = 'System Error';
+
+                } finally {
+                    promptInput.disabled = false;
+                    sendButton.disabled = false;
+                    promptInput.focus();
+                }
+            })();
+        }
+
+        // Load chat history
+        function loadChatHistory() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+
+            chatHistory.slice(-5).reverse().forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.textContent = `${item.timestamp} - ${item.model}`;
+                historyItem.title = item.prompt;
+                historyItem.onclick = () => {
+                    document.getElementById('prompt-input').value = item.prompt;
+                    document.getElementById('model-select').value = item.model.toLowerCase().replace(' models', 'both');
+                };
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Clear history
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all chat history?')) {
+                chatHistory = [];
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                loadChatHistory();
+                alert('Chat history cleared!');
+            }
+        }
+    </script>
+</body>
+</html>
